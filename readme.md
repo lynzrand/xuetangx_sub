@@ -28,3 +28,11 @@ Please enter output path: <输出目录>
 ```
 
 全部填写完毕之后即开始自动下载字幕。
+
+## 协议
+
+WTFPL
+
+<a href="http://www.wtfpl.net/"><img
+       src="http://www.wtfpl.net/wp-content/uploads/2012/12/wtfpl-badge-4.png"
+       width="80" height="15" alt="WTFPL" /></a>
