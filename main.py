@@ -145,6 +145,8 @@ def get_subtitles_and_write(course_id: int, chapters: List[Chapter],
                             f.write("\n".join([line.strip() for line in sub]))
                     else:
                         print(f"No subtitles for {leaf_info}")
+                else:
+                    print(f"Not a video {leaf.name} {leaf_item}")
                 # sleep a while
                 time.sleep(0.1)
 
