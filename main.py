@@ -11,6 +11,7 @@ from pprint import pprint
 
 chaps = ["0D16B704A478D3FB9C33DC5901307461"]
 
+URL_BASE = "https://www.xuetangx.com"
 
 class SessionInfo:
     def __init__(self, session_id: str, sign_id: str):
@@ -20,7 +21,7 @@ class SessionInfo:
 
 
 def make_video_path(id: str) -> str:
-    return "https://next.xuetangx.com/api/v1/lms/service/subtitle_parse/?c_d=%s&lg=0" % id
+    return f"{URL_BASE}/api/v1/lms/service/subtitle_parse/?c_d={id}&lg=0"
 
 
 decoder = json.JSONDecoder()
@@ -38,7 +39,7 @@ class Video:
         self.ids = ids
 
     def __repr__(self):
-        return "Video(name: %s, ids: %s)" % (self.name, self.ids)
+        return f"Video(name: {self.name}, ids: {self.ids})"
 
 
 class Chapter:
@@ -51,7 +52,7 @@ class Chapter:
         self.leaf = []
 
     def __repr__(self):
-        return "Chapter(name: %s, leaf: %s)" % (self.name, self.leaf)
+        return f"Chapter(name: {self.name}, leaf: {self.leaf})"
 
 
 def chapter_from_raw(chapter_info: dict) -> Chapter:
@@ -71,11 +72,11 @@ def get_course_info(chapter_info: dict) -> List[Chapter]:
 
 def fetch_course(id: str, session: SessionInfo) -> dict:
     """
-    Gets the chaper info for chapter id `id` with session `session`
+    Gets the chapter info for chapter id `id` with session `session`
     """
     print("Getting course info")
     res = requests.get(
-        "https://next.xuetangx.com/api/v1/lms/learn/course/chapter",
+        f"{URL_BASE}/api/v1/lms/learn/course/chapter",
         params={"cid": id,
                 "sign": session.sign_id},
         cookies={
@@ -90,9 +91,8 @@ def fetch_course(id: str, session: SessionInfo) -> dict:
 
 def get_leaf_video_id(course_id: int, leaf_id: int,
                       session: SessionInfo) -> Union[str, None]:
-    leaf_path = "https://next.xuetangx.com/api/v1/lms/learn/leaf_info/%d/%d/" % (
-        course_id, leaf_id)
-    print("Fetching %s", leaf_path)
+    leaf_path = f"{URL_BASE}/api/v1/lms/learn/leaf_info/{course_id}/{leaf_id}/"
+    print(f"Fetching {leaf_path}")
     res = requests.get(
         leaf_path,
         params={"sign": session.sign_id},
@@ -107,13 +107,17 @@ def get_leaf_video_id(course_id: int, leaf_id: int,
         return None
 
 
-def get_subtitle(video_id: str) -> List[str]:
+def get_subtitle(video_id: str) -> Union[List[str], None]:
     res = requests.get(
-        "https://next.xuetangx.com/api/v1/lms/service/subtitle_parse/",
+        f"{URL_BASE}/api/v1/lms/service/subtitle_parse/",
         params={
             "c_d": video_id
         })
-    return decoder.decode(res.text)["text"]
+    res_json = decoder.decode(res.text)
+    if "text" in res_json:
+        return res_json["text"]
+    else:
+        return None
 
 
 def get_subtitles_and_write(course_id: int, chapters: List[Chapter],
@@ -125,22 +129,22 @@ def get_subtitles_and_write(course_id: int, chapters: List[Chapter],
     for chap in chapters:
         chap_path = target_dir / chap.name
         chap_path.mkdir(parents=True, exist_ok=True)
-        print("For chapter %s" % chap.name)
+        print(f"For chapter {chap.name}")
         for leaf in chap.leaf:
             for leaf_item in leaf.ids:
-                print("Getting info for video %s %s" % (leaf.name, leaf_item))
+                print(f"Getting info for video {leaf.name} {leaf_item}")
                 leaf_info = get_leaf_video_id(course_id, leaf_item, session)
-                if leaf_info is not None:
-                    print("Fetching subtitle for video %s %s" % (leaf.name,
-                                                                 leaf_info))
+                if leaf_info:
+                    print(f"Fetching subtitles for video {leaf.name} {leaf_info}")
                     sub = get_subtitle(leaf_info)
-
-                    print("Writing subtitle for %s" % leaf_info)
-                    sub_file = chap_path / pathvalidate.sanitize_filename(
-                        "%d_%s.txt" % (leaf_item, leaf.name))
-                    f = open(sub_file.__str__(), "w", encoding="utf8")
-                    f.write("\r\n".join(sub))
-                    f.close()
+                    if sub:
+                        print(f"Writing subtitles for {leaf_info}")
+                        sub_file = chap_path / pathvalidate.sanitize_filename(
+                            f"{leaf_item}_{leaf.name}.txt")
+                        with open(str(sub_file), "w", encoding="utf8") as f:
+                            f.write("\n".join([line.strip() for line in sub]))
+                    else:
+                        print(f"No subtitles for {leaf_info}")
                 # sleep a while
                 time.sleep(0.1)
 
