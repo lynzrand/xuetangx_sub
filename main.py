@@ -59,6 +59,8 @@ def chapter_from_raw(chapter_info: dict) -> Chapter:
     chapter_name = chapter_info["name"]
     chapter = Chapter(chapter_name)
     for leaf in chapter_info["section_leaf_list"]:
+        if "leaf_list" not in leaf:
+            continue
         name = leaf["name"]
         videos = [int(video["id"]) for video in leaf["leaf_list"]]
         chapter.leaf.append(Video(name, videos))
