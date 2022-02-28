@@ -129,7 +129,7 @@ def get_subtitles_and_write(course_id: int, chapters: List[Chapter],
     target_dir.mkdir(parents=True, exist_ok=True)
 
     for chap in chapters:
-        chap_path = target_dir / chap.name
+        chap_path = target_dir / pathvalidate.sanitize_filename(chap.name)
         chap_path.mkdir(parents=True, exist_ok=True)
         print(f"For chapter {chap.name}")
         for leaf in chap.leaf:
